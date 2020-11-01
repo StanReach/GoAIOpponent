@@ -16,8 +16,8 @@ public class Main {
     private static final int BLACK = 1;
     private static final int WHITE = 2;
     private static final int EMPTY = 0;
-    private static final int boardHeight = 4;
-    private static final int boardWidth = 4;
+    private static final int boardHeight = 2;
+    private static final int boardWidth = 2;
     private static int[][] GOBoard;
     private static int colourToMove = BLACK;
 
@@ -31,9 +31,16 @@ public class Main {
         
         while (!gameOver) {
             if (colourToMove == AIPieceColour) {
-                move = findBestMove();
+                try {
+                    move = findBestMove();
+                } catch (Exception e) {
+                    break;
+                }
             } else {
                 move = getPlayerMove();
+                if (move == null) {
+                    break;
+                }
             }
             placeStone(move);
             captureStones();
@@ -79,47 +86,53 @@ public class Main {
         return (new Point(Integer.parseInt(coords[0]), Integer.parseInt(coords[1])));
     }
 
+
+
     private static void captureStones() {
         Set<GroupOfStones> groupsThatAreCaptured = new HashSet<GroupOfStones>();
 
         for (GroupOfStones groups : setOfStoneGroups) {
             if (groups.liberties.size() == 0 && groups.colour != colourToMove) {
                 for (Point stone : groups.stonesInGroup) {
-                    GOBoard[stone.x][stone.y] = EMPTY;
-
-                    if (stone.x + 1 < boardWidth && (GOBoard[stone.x + 1][stone.y] != EMPTY)) {
-                        for (GroupOfStones group : setOfStoneGroups) {
-                            if (group.stonesInGroup.contains(new Point(stone.x + 1, stone.y))) {
-                                group.liberties.add(stone);
-                            }
-                        }
-                    }
-                    if (stone.x - 1 >= 0 && (GOBoard[stone.x - 1][stone.y] == EMPTY)) {
-                        for (GroupOfStones group : setOfStoneGroups) {
-                            if (group.stonesInGroup.contains(new Point(stone.x - 1, stone.y))) {
-                                group.liberties.add(stone);
-                            }
-                        }
-                    }
-                    if (stone.y + 1 < boardWidth && (GOBoard[stone.x][stone.y + 1] != EMPTY)) {
-                        for (GroupOfStones group : setOfStoneGroups) {
-                            if (group.stonesInGroup.contains(new Point(stone.x, stone.y + 1))) {
-                                group.liberties.add(stone);
-                            }
-                        }
-                    }
-                    if (stone.y - 1 >= 0 && (GOBoard[stone.x][stone.y - 1] == EMPTY)) {
-                        for (GroupOfStones group : setOfStoneGroups) {
-                            if (group.stonesInGroup.contains(new Point(stone.x, stone.y - 1))) {
-                                group.liberties.add(stone);
-                            }
-                        }
-                    }
+                    returnStonesLibertiesToGroups(stone);
                 }
                 groupsThatAreCaptured.add(groups);
             }
         }
         setOfStoneGroups.removeAll(groupsThatAreCaptured);
+    }
+
+    static void returnStonesLibertiesToGroups(Point stone) {
+        GOBoard[stone.x][stone.y] = EMPTY;
+
+        if (stone.x + 1 < boardWidth && (GOBoard[stone.x + 1][stone.y] != EMPTY)) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(stone.x + 1, stone.y))) {
+                    group.liberties.add(stone);
+                }
+            }
+        }
+        if (stone.x - 1 >= 0 && (GOBoard[stone.x - 1][stone.y] != EMPTY)) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(stone.x - 1, stone.y))) {
+                    group.liberties.add(stone);
+                }
+            }
+        }
+        if (stone.y + 1 < boardWidth && (GOBoard[stone.x][stone.y + 1] != EMPTY)) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(stone.x, stone.y + 1))) {
+                    group.liberties.add(stone);
+                }
+            }
+        }
+        if (stone.y - 1 >= 0 && (GOBoard[stone.x][stone.y - 1] != EMPTY)) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(stone.x, stone.y - 1))) {
+                    group.liberties.add(stone);
+                }
+            }
+        }
     }
 
     private static void placeStone(Point move) {
@@ -226,23 +239,115 @@ public class Main {
         return true;
     }
 
-    private static boolean isSuicide(Point point) {
+    private static boolean isSuicide(Point move) {
+        boolean hasLiberties = false;
 
-    }
+        if ((move.x + 1 < boardWidth) && GOBoard[move.x + 1][move.y] == EMPTY) {
+            hasLiberties = true;
+        } else if ((move.x - 1 >= 0) && GOBoard[move.x - 1][move.y] == EMPTY) {
+            hasLiberties = true;
+        } else if ((move.y + 1 < boardWidth) && GOBoard[move.x][move.y + 1] == EMPTY) {
+            hasLiberties = true;
+        } else if ((move.y - 1 >= 0) && GOBoard[move.x][move.y - 1] == EMPTY) {
+            hasLiberties = true;
+        }
 
-    private static boolean isGroupCaptured(Point point) {
-        /*if (GOBoard[point.x + 1][point.y] == oppositeColour(colourToMove)) {
-            
-        }*/
+        if ((move.x + 1 < boardWidth) && GOBoard[move.x + 1][move.y] == oppositeColour()) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x + 1, move.y))) {
+                    if (group.liberties.size() == 1) {
+                        return false;
+                    }
+                }
+            }
+        }
+        if ((move.x - 1 >= 0) && GOBoard[move.x - 1][move.y] == oppositeColour()) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x - 1, move.y))) {
+                    if (group.liberties.size() == 1) {
+                        return false;
+                    }
+                }
+            }
+        }
+        if ((move.y + 1 < boardHeight) && GOBoard[move.x][move.y + 1] == oppositeColour()) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x, move.y + 1))) {
+                    if (group.liberties.size() == 1) {
+                        return false;
+                    }
+                }
+            }
+        }
+        if ((move.y - 1 >= 0) && GOBoard[move.x][move.y - 1] == oppositeColour()) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x, move.y - 1))) {
+                    if (group.liberties.size() == 1) {
+                        return false;
+                    }
+                }
+            }
+        }
+        //
+        boolean createLiberties = false;
+        if ((move.x + 1 < boardWidth) && GOBoard[move.x + 1][move.y] == colourToMove) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x + 1, move.y))) {
+                    if (group.liberties.size() == 1 && !hasLiberties) {
+                        //
+                    } else {
+                        createLiberties = true;
+                    }
+                }
+            }
+        }
+        if ((move.x - 1 >= 0) && GOBoard[move.x - 1][move.y] == colourToMove) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x - 1, move.y))) {
+                    if (group.liberties.size() == 1 && !hasLiberties) {
+                        //
+                    } else {
+                        createLiberties = true;
+                    }
+                }
+            }
+        }
+        if ((move.y + 1 < boardHeight) && GOBoard[move.x][move.y + 1] == colourToMove) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x, move.y + 1))) {
+                    if (group.liberties.size() == 1 && !hasLiberties) {
+                        //
+                    } else {
+                        createLiberties = true;
+                    }
+                }
+            }
+        }
+        if ((move.y - 1 >= 0) && GOBoard[move.x][move.y - 1] == colourToMove) {
+            for (GroupOfStones group : setOfStoneGroups) {
+                if (group.stonesInGroup.contains(new Point(move.x, move.y - 1))) {
+                    if (group.liberties.size() == 1 && !hasLiberties) {
+                        //
+                    } else {
+                        createLiberties = true;
+                    }
+                }
+            }
+        }
+        if (createLiberties == true) {
+            return false;
+        }
+        if (!hasLiberties) {
+            return true;
+        }
         return false;
     }
 
-    private static int oppositeColour(int colourToMove) {
+    private static int oppositeColour() {
         if (colourToMove == BLACK) {
             return WHITE;
-        } else {
-            return BLACK;
         }
+        return BLACK;
     }
 
     private static boolean isOccupied(Point point) {
