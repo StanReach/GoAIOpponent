@@ -7,8 +7,6 @@ import java.util.List;
 public class Main {
 
     private static Scanner playerInput;
-    
-    private static Boolean gameOver = false;
 
     private static final Set<GroupOfStones> setOfStoneGroups = new HashSet<>();
     private static final Set<Territory> setOfTerritory = new HashSet<>();
@@ -31,7 +29,11 @@ public class Main {
         Point move;
 
         addAllPointsToInitialTerritory();
-        
+
+        printBoard();
+
+        boolean gameOver = false;
+
         while (!gameOver) {
             if (colourToMove == AIPieceColour) {
                 move = findBestMove();
@@ -43,16 +45,20 @@ public class Main {
             captureStones();
             updateTerritory(move);
             declareEndOfTurn(move);
-            for(GroupOfStones x : setOfStoneGroups){
-                System.out.println("Stones in group: " + x.stonesInGroup);
-                System.out.println("liberties in group: " + x.liberties);
-                System.out.println();
-            }
-            for(Territory x : setOfTerritory){
-                System.out.println("Spaces in territory: " + x.territory);
-                System.out.println();
-            }
+            printSets();
             printBoard();
+        }
+    }
+
+    private static void printSets() {
+        for(GroupOfStones x : setOfStoneGroups){
+            System.out.println("Stones in group: " + x.stonesInGroup);
+            System.out.println("liberties in group: " + x.liberties);
+            System.out.println();
+        }
+        for(Territory x : setOfTerritory){
+            System.out.println("Owner of Territory is: " + x.owner + " Spaces in territory: " + x.territory);
+            System.out.println();
         }
     }
 
@@ -75,34 +81,33 @@ public class Main {
     }
 
     private static void updateTerritory(Point move) {
-        for (Territory x : setOfTerritory) {
-            if (x.territory.contains(move)) {
-                setOfTerritory.remove(x);
+        setOfTerritory.remove(getTerritoryThatSpaceIsMemberOf(move));
+
+        for (Point adjacent : pointsAdjacentTo(move)) {
+            if (pieceAtPosition(adjacent) == EMPTY && getTerritoryThatSpaceIsMemberOf(adjacent) == null) {
+                Territory newTerritory = new Territory(EMPTY);
+                newTerritory.territory.add(adjacent);
+                setOfTerritory.add(newTerritory);
+                floodTerritory(adjacent, newTerritory);
+                if (newTerritory.borderingColours.size() == 2) {
+                    newTerritory.owner = EMPTY;
+                } else {
+                    for (Integer x : newTerritory.borderingColours) newTerritory.owner = x;
+                }
             }
-        }
-        
-        if (move.x + 1 < boardWidth && (GOBoard[move.x + 1][move.y] == EMPTY)) {
-            Territory newTerritory = floodTerritory(new Point(move.x + 1, move.y));
-        }
-        if (move.x - 1 >= 0 && (GOBoard[move.x - 1][move.y] == EMPTY)) {
-
-        }
-        if (move.y + 1 < boardWidth && (GOBoard[move.x][move.y + 1] == EMPTY)) {
-
-        }
-        if (move.y - 1 >= 0 && (GOBoard[move.x][move.y - 1] == EMPTY)) {
-
         }
     }
 
-    private static Territory floodTerritory(Point point) {
-        Territory newTerritory = new Territory(EMPTY);
+    private static void floodTerritory(Point point, Territory territory) {
 
-        while (true) {
-            newTerritory.territory.add(point);
-            break;
+        for (Point adjacent : pointsAdjacentTo(point)) {
+            if (pieceAtPosition(adjacent) == EMPTY && !territory.territory.contains(adjacent)) {
+                territory.territory.add(adjacent);
+                floodTerritory(adjacent,territory);
+            } else if (pieceAtPosition(adjacent) != EMPTY) {
+                territory.borderingColours.add(pieceAtPosition(adjacent));
+            }
         }
-        return newTerritory;
     }
 
     private static void addAllPointsToInitialTerritory() {
@@ -227,7 +232,7 @@ public class Main {
 
     private static Point findBestMove() {
         List<Point> legalPositions = getListOfLegalPositions();
-        //System.out.println(legalPositions);
+        /* System.out.println(legalPositions); */
         int randomIndex = (int) (Math.random() * (legalPositions.size()));
         return legalPositions.get(randomIndex);
     }
@@ -262,6 +267,15 @@ public class Main {
         return true;
     }
 
+    private static Territory getTerritoryThatSpaceIsMemberOf(Point space) {
+        for (Territory territory : setOfTerritory) {
+            if (territory.territory.contains(space)) {
+                return territory;
+            }
+        }
+        return null;
+    }
+
     private static GroupOfStones getGroupThatStoneIsMemberOf(Point stone) {
         for (GroupOfStones group : setOfStoneGroups) {
             if (group.stonesInGroup.contains(stone)) {
@@ -277,27 +291,24 @@ public class Main {
         for (Point adjacentPoint : pointsAdjacentTo(move)) {
             if (pieceAtPosition(adjacentPoint) == EMPTY) {
                 hasLiberties = true;
+                break;
             }
         }
         boolean createLiberties = false;
-        for (Point adjacentPoint : pointsAdjacentTo(move)) {
+        for (Point adjacentPoint : pointsAdjacentTo(move))
             if (pieceAtPosition(adjacentPoint) == oppositeColour()) {
                 if (getGroupThatStoneIsMemberOf(adjacentPoint).liberties.size() == 1) {
                     return false;
-                }        
+                }
             } else if (pieceAtPosition(adjacentPoint) == colourToMove) {
                 if (!(getGroupThatStoneIsMemberOf(adjacentPoint).liberties.size() == 1 && !hasLiberties)) {
                     createLiberties = true;
                 }
             }
-        }
-        if (createLiberties == true) {
+        if (createLiberties) {
             return false;
         }
-        if (!hasLiberties) {
-            return true;
-        }
-        return false;
+        return !hasLiberties;
     }
 
     private static int oppositeColour() {
@@ -308,20 +319,14 @@ public class Main {
     }
 
     private static boolean isOccupied(Point point) {
-        if (GOBoard[point.x][point.y] != 0) {
-            return true;
-        }
-        return false;
+        return GOBoard[point.x][point.y] != 0;
     }
 
     private static boolean isOutOfBounds(Point point) {
         if (boardWidth <= point.x || point.x < 0) {
             return true;
         }
-        if (boardHeight <= point.y || point.y < 0) {
-            return true;
-        }
-        return false;
+        return boardHeight <= point.y || point.y < 0;
     }
 
     private static void randomlyChoosePieceColour() {

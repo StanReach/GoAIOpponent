@@ -8,9 +8,11 @@ public class Territory {
     int owner;
 
     Set<Point> territory;
+    Set<Integer> borderingColours;
 
     Territory(int setColour) {
         owner = setColour;
         territory = new HashSet<Point>();
+        borderingColours = new HashSet<Integer>();
     }
 }
