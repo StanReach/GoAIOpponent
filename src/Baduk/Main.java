@@ -6,6 +6,7 @@ import java.util.List;
 
 public class Main {
 
+    private static final Point PASS = null;
     private static Scanner playerInput;
 
     private static final Set<GroupOfStones> setOfStoneGroups = new HashSet<>();
@@ -23,6 +24,7 @@ public class Main {
     public static void main(String[] args) {
         GOBoard = new int[boardWidth][boardHeight];
         playerInput = new Scanner(System.in);
+        Point lastMove = null;
         
         randomlyChoosePieceColour();
 
@@ -40,13 +42,19 @@ public class Main {
             } else {
                 move = findBestMove();//getPlayerMove();
             }
-            placeStone(move);
-            updateGroupList(move);
-            captureStones();
-            updateTerritory(move);
+            if (move != PASS) {
+                placeStone(move);
+                updateGroupList(move);
+                captureStones();
+                updateTerritory(move);
+            }
             declareEndOfTurn(move);
             printSets();
             printBoard();
+            if (move == PASS && lastMove == PASS) {
+                gameOver = true;
+            }
+            lastMove = move;
         }
     }
 
@@ -135,7 +143,7 @@ public class Main {
             System.out.println("BLACK ENDED TURN!");
             colourToMove = WHITE;
         }
-            System.out.println("The player placed a stone at position " + point.x + "," + point.y);
+            System.out.println("The player placed a stone at position " + point);
     }
 
     private static Point getPlayerMove() {
@@ -230,8 +238,13 @@ public class Main {
 
     private static Point findBestMove() {
         List<Point> legalPositions = getListOfLegalPositions();
-        int randomIndex = (int) (Math.random() * (legalPositions.size()));
-        return legalPositions.get(randomIndex);
+
+        if (legalPositions.size() == 0) {
+            return PASS;
+        } else {
+            int randomIndex = (int) (Math.random() * (legalPositions.size()));
+            return legalPositions.get(randomIndex);
+        }
     }
 
     private static List<Point> getListOfLegalPositions() {
