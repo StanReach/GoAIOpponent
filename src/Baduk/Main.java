@@ -38,7 +38,7 @@ public class Main {
             if (colourToMove == AIPieceColour) {
                 move = findBestMove();
             } else {
-                move = getPlayerMove();
+                move = findBestMove();//getPlayerMove();
             }
             placeStone(move);
             updateGroupList(move);
@@ -196,6 +196,7 @@ public class Main {
             if (pieceAtPosition(adjacentPoint) == EMPTY) {
                 newGroup.liberties.add(adjacentPoint);
             } else if (pieceAtPosition(adjacentPoint) == colourToMove) {
+
                 newGroup = deleteObseleteGroupAndReturnMergedGroup(newGroup, adjacentPoint, move);
             }
         }
@@ -211,28 +212,24 @@ public class Main {
     }
 
     private static GroupOfStones deleteObseleteGroupAndReturnMergedGroup(GroupOfStones newGroup, Point unionPoint, Point move) {
-        GroupOfStones mergedGroup = new GroupOfStones(colourToMove);
         GroupOfStones groupToBeRemoved = null;
 
         for (GroupOfStones group : setOfStoneGroups) {
             if (group.stonesInGroup.contains(unionPoint)) {
-                mergedGroup.stonesInGroup.addAll(group.stonesInGroup);
-                mergedGroup.stonesInGroup.addAll(newGroup.stonesInGroup);
-                mergedGroup.liberties.addAll(group.liberties);
-                mergedGroup.liberties.addAll(newGroup.liberties);
-                mergedGroup.liberties.remove(move);
-                mergedGroup.liberties.remove(unionPoint);
+                newGroup.stonesInGroup.addAll(group.stonesInGroup);
+                newGroup.liberties.addAll(group.liberties);
+                newGroup.liberties.remove(move);
+                newGroup.liberties.remove(unionPoint);
                 groupToBeRemoved = group;
             }
         }
         setOfStoneGroups.remove(groupToBeRemoved);
         setOfStoneGroups.removeAll(Collections.EMPTY_SET);
-        return mergedGroup;
+        return newGroup;
     }
 
     private static Point findBestMove() {
         List<Point> legalPositions = getListOfLegalPositions();
-        /* System.out.println(legalPositions); */
         int randomIndex = (int) (Math.random() * (legalPositions.size()));
         return legalPositions.get(randomIndex);
     }
@@ -295,7 +292,8 @@ public class Main {
             }
         }
         boolean createLiberties = false;
-        for (Point adjacentPoint : pointsAdjacentTo(move))
+        for (Point adjacentPoint : pointsAdjacentTo(move)) {
+            System.out.println(adjacentPoint);
             if (pieceAtPosition(adjacentPoint) == oppositeColour()) {
                 if (getGroupThatStoneIsMemberOf(adjacentPoint).liberties.size() == 1) {
                     return false;
@@ -305,6 +303,7 @@ public class Main {
                     createLiberties = true;
                 }
             }
+        }
         if (createLiberties) {
             return false;
         }
