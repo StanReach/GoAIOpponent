@@ -16,15 +16,15 @@ public class Main {
     private static final int BLACK = 1;
     private static final int WHITE = 2;
     private static final int EMPTY = 0;
-    private static final int boardHeight = 4;
-    private static final int boardWidth = 4;
+    private static final int boardHeight = 9;
+    private static final int boardWidth = 9;
     private static int[][] GOBoard;
     private static int colourToMove = BLACK;
+    private static Point lastMove = null;
 
     public static void main(String[] args) {
         GOBoard = new int[boardWidth][boardHeight];
         playerInput = new Scanner(System.in);
-        Point lastMove = null;
         
         randomlyChoosePieceColour();
 
@@ -40,7 +40,7 @@ public class Main {
             if (colourToMove == AIPieceColour) {
                 move = findBestMove();
             } else {
-                move = findBestMove();//getPlayerMove();
+                move = getPlayerMove();
             }
             if (move != PASS) {
                 placeStone(move);
@@ -49,13 +49,35 @@ public class Main {
                 updateTerritory(move);
             }
             declareEndOfTurn(move);
-            printSets();
             printBoard();
+            printScore();
             if (move == PASS && lastMove == PASS) {
                 gameOver = true;
             }
             lastMove = move;
         }
+        printBoard();
+        printScore();
+    }
+
+    private static void printScore() {
+        System.out.println("Black scored: " + getScoreForColour(BLACK));
+        System.out.println("White scored: " + getScoreForColour(WHITE));
+    }
+
+    private static int getScoreForColour(int colour) {
+        int score = 0;
+        for (GroupOfStones x : setOfStoneGroups) {
+            if (x.colour == colour) {
+                score += x.stonesInGroup.size();
+            }
+        }
+        for (Territory x : setOfTerritory) {
+            if (x.owner == colour) {
+                score += x.territory.size();
+            }
+        }
+        return score;
     }
 
     private static void printSets() {
@@ -132,6 +154,7 @@ public class Main {
 
     private static void printBoard() {
         System.out.println(Arrays.deepToString(GOBoard).replace("], ", "]\n").replace("[[", "[").replace("]]", "]"));
+        System.out.println();
         //Code snippet taken from "https://stackoverflow.com/questions/19648240/java-best-way-to-print-2d-array"
     }
 
@@ -262,19 +285,42 @@ public class Main {
 
     private static boolean isLegalPosition(Point point) {
         if (isOutOfBounds(point)) {
-            System.out.println("position was out of bounds, try again");
+            if (colourToMove != AIPieceColour) {
+                System.out.println("position was out of bounds, try again");
+            }
             return false;
         }
         if (isOccupied(point)) {
-            System.out.println("position was occupied, try again");
+            if (colourToMove != AIPieceColour) {
+                System.out.println("position was occupied, try again");
+            }
             return false;
         }
         if (isSuicide(point)) {
-            System.out.println("position was suicidal, try again");
+            if (colourToMove != AIPieceColour) {
+                System.out.println("position was suicidal, try again");
+            }
             return false;
         }
-        //Ko Exception
+        if (isKo(point)) {
+            if (colourToMove != AIPieceColour) {
+                System.out.println("position was KO, try again");
+            }
+            return false;
+        }
         return true;
+    }
+
+    private static boolean isKo(Point point) {
+        for (Point adjacentPoint : pointsAdjacentTo(point)) {
+            if (adjacentPoint.equals(lastMove)) {
+                if (getGroupThatStoneIsMemberOf(adjacentPoint).liberties.size() == 1) {
+                    return true;
+                }
+                break;
+            }
+        }
+        return false;
     }
 
     private static Territory getTerritoryThatSpaceIsMemberOf(Point space) {
@@ -306,7 +352,6 @@ public class Main {
         }
         boolean createLiberties = false;
         for (Point adjacentPoint : pointsAdjacentTo(move)) {
-            System.out.println(adjacentPoint);
             if (pieceAtPosition(adjacentPoint) == oppositeColour()) {
                 if (getGroupThatStoneIsMemberOf(adjacentPoint).liberties.size() == 1) {
                     return false;
